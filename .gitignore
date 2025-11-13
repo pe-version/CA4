@@ -1,0 +1,107 @@
+# CA4 Multi-Cloud Project - Git Ignore
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfvars
+terraform/cloud2/.terraform/
+terraform/cloud2/.terraform.lock.hcl
+terraform/cloud2/terraform.tfstate
+terraform/cloud2/terraform.tfstate.backup
+terraform/cloud2/*.tfvars
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfplan
+
+# Kubernetes
+**/kubeconfig
+**/.kube/config*
+**/k3s.yaml
+**/*-kubeconfig.yaml
+
+# Secrets & Keys
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+secrets/
+*.env
+.env.*
+wireguard/*.conf
+wireguard/privatekey
+wireguard/publickey
+**/tls-certs/
+
+# Cloud Credentials
+**/.aws/
+**/.gcp/
+**/.digitalocean/
+**/credentials
+**/serviceaccount.json
+
+# Evidence & Videos (too large for git)
+evidence/
+*.mp4
+*.mov
+*.avi
+
+# Screenshots (large files)
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# Logs
+*.log
+logs/
+debug_logs/
+
+# Temporary & Backup Files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# macOS
+.DS_Store
+**/.DS_Store
+Thumbs.db
+desktop.ini
+
+# Planning documents (personal, don't commit)
+.grade-improvement-plan.md
+.quick-wins-no-video.md
+.hpa-full-scaling-optionb.md
+
+# Node modules (if using any tools)
+node_modules/
+
+# Helm
+charts/*.tgz
+**/charts/*.lock
