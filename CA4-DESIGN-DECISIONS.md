@@ -196,11 +196,12 @@ For each decision below:
 
 ---
 
-## 🔴 DECISION 2: Topology Pattern
+## 🟢 DECISION 2: Topology Pattern
 
-**STATUS**: 🔴 Pending
+**STATUS**: 🟢 **DECIDED - Multi-Cloud Split**
+**DECISION DATE**: November 13, 2025
 **PRIORITY**: Critical (affects component distribution)
-**DECISION NEEDED BY**: Before deployment planning
+**CHOSEN**: Option A - Multi-Cloud Split (Data vs Compute)
 
 ### Option A: Multi-Cloud Split (Data vs Compute) ⭐ RECOMMENDED
 
@@ -344,17 +345,23 @@ AWS (us-east-2):                      GCP (Cloud2):
 
 ### My Recommendation
 
-**RECOMMENDED**: Option A - Multi-Cloud Split
+**DECISION**: ✅ **APPROVED - Option A - Multi-Cloud Split**
 
 **Rationale**:
 - Best balance of complexity vs demonstration value
 - Clearly shows multi-cloud connectivity (assignment goal)
 - Reuses CA3 infrastructure (efficient)
 - Easy to explain and demonstrate
-- Realistic failure scenario
-- Achievable within assignment timeline
+- Realistic failure scenario (VPN tunnel failure)
+- Achievable within assignment timeline (4-6 hours)
+- Mirrors real-world architecture patterns (centralized data, distributed compute)
 
-**DECISION**: ❓ **PENDING USER INPUT**
+**Implementation Plan**:
+1. Keep AWS infrastructure with data services (Kafka, Zookeeper, MongoDB)
+2. Keep observability centralized in AWS (Prometheus, Grafana, Loki)
+3. Deploy compute tier to Cloud2 (Producer, Processor)
+4. Establish WireGuard VPN tunnel between clouds
+5. Configure cross-cloud service discovery and routing
 
 ---
 
@@ -955,11 +962,11 @@ Once you approve the decisions above, I'll help you:
 
 | Decision | Status | Chosen Option | Date | Rationale |
 |----------|--------|---------------|------|-----------|
-| Cloud Provider | 🔴 Pending | - | - | - |
-| Topology | 🔴 Pending | - | - | - |
-| Connectivity | 🔴 Pending | - | - | - |
-| Component Distribution | 🔴 Pending | - | - | - |
-| Failure Scenario | 🔴 Pending | - | - | - |
+| Cloud Provider | 🔴 Pending | - | - | Awaiting decision |
+| **Topology** | **🟢 Decided** | **Multi-Cloud Split** | **Nov 13, 2025** | **Best demo value, reuses CA3, clear failure scenario** |
+| Connectivity | 🔴 Pending | - | - | Awaiting decision |
+| Component Distribution | 🟡 Partial | Depends on Topology | - | AWS=Data, Cloud2=Compute |
+| Failure Scenario | 🟡 Partial | VPN Tunnel Failure | - | Best demonstrates multi-cloud |
 
 ---
 
