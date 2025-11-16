@@ -375,11 +375,12 @@ AWS (us-east-2):                      GCP (Cloud2):
 
 ---
 
-## 🔴 DECISION 3: Connectivity Model
+## 🟢 DECISION 3: Connectivity Model
 
-**STATUS**: 🔴 Pending
+**STATUS**: 🟢 **DECIDED - WireGuard VPN**
+**DECISION DATE**: November 13, 2025
 **PRIORITY**: Critical (core infrastructure)
-**DECISION NEEDED BY**: Before network setup
+**CHOSEN**: Option A - WireGuard Site-to-Site VPN
 
 ### Option A: Site-to-Site VPN with WireGuard ⭐ RECOMMENDED
 
@@ -544,24 +545,33 @@ ssh -L 27017:mongodb-0.ca3-app:27017 ubuntu@gcp-bastion
 
 ### My Recommendation
 
-**RECOMMENDED**: Option A - WireGuard VPN
+**DECISION**: ✅ **APPROVED - WireGuard VPN**
 
 **Rationale**:
 - **Best cost/value**: $0 vs $72/month for managed VPN
-- **Industry standard**: WireGuard is modern, widely used
-- **Automatable**: Can deploy via Kubernetes manifests
-- **Perfect for demo**: Easy to show, test, and fail/recover
-- **Works with any cloud**: DigitalOcean, GCP, Azure, etc.
+- **Industry standard**: WireGuard is modern, widely adopted by enterprises
+- **Simple yet production-grade**: ~20 lines of config, kernel-level performance
+- **Automatable**: Deploy via Kubernetes manifests and Terraform
+- **Perfect for demo**: Easy to show, test, fail, and recover
+- **Cloud-agnostic**: Works with any cloud provider (GCP, AWS, DigitalOcean, etc.)
+- **Fast**: Minimal overhead (~5ms added latency), ChaCha20 encryption
 
-**DECISION**: ❓ **PENDING USER INPUT**
+**Implementation Plan**:
+1. Deploy WireGuard pods in both AWS and GCP clusters (DaemonSet or Deployment)
+2. Generate key pairs (wg genkey/wg pubkey)
+3. Configure each side with peer's public key and allowed IPs
+4. Set up routing rules for cross-cloud service discovery
+5. Test connectivity and verify encryption
+6. Document failover scenario (VPN pod deletion → recovery)
 
 ---
 
-## 🔴 DECISION 4: Component Distribution
+## 🟢 DECISION 4: Component Distribution
 
-**STATUS**: 🔴 Pending (depends on Topology choice)
-**PRIORITY**: High
-**DECISION NEEDED BY**: Before deployment planning
+**STATUS**: 🟢 **DECIDED - AWS Data Tier, GCP Compute Tier**
+**DECISION DATE**: November 13, 2025
+**PRIORITY**: High (based on Multi-Cloud Split topology)
+**CHOSEN**: Data services in AWS, Compute workloads in GCP
 
 ### Recommended Distribution (Based on Multi-Cloud Split)
 
@@ -657,25 +667,51 @@ Node Exp ───[VPN]───────────────────
 
 ### My Recommendation
 
-**Option 1** (Optimized):
-- AWS: 2 nodes (master + worker-1) = $60/month
-- Cloud2: 2 nodes (producers + processors) = $40/month
-- **Total**: $100/month
+**DECISION**: ✅ **APPROVED - AWS Data Tier, GCP Compute Tier**
 
 **Rationale**:
-- Clean separation (data in AWS, compute in Cloud2)
-- Saves $15/month by removing AWS worker-2
-- Clear multi-cloud demo
+- **Data Gravity**: Kafka and MongoDB co-located in AWS (low latency for data operations)
+- **Stateful vs Stateless Separation**: Keep state in AWS, scale compute in GCP
+- **Reuses CA3 Infrastructure**: Minimal changes to existing AWS deployment
+- **Clear Multi-Cloud Demo**: VPN failure immediately impacts GCP compute tier
+- **Realistic Pattern**: Mirrors real-world architecture (centralized data, distributed processing)
+- **Cost Optimization**: Can downsize AWS from 3 nodes to 2 (save $15/month)
 
-**DECISION**: ❓ **PENDING USER INPUT**
+**Final Configuration**:
+- **AWS**: 2 nodes (master + worker-1) = $60/month
+  - Master (t3.medium, 4GB): Prometheus, Grafana, Loki, control plane
+  - Worker-1 (t3.medium, 4GB): Kafka, Zookeeper, MongoDB
+- **GCP**: 2 nodes (e2-medium, 4GB each) = $0 (free credits)
+  - Node-1: Producer deployments (1-3 replicas via HPA)
+  - Node-2: Processor deployments (1-3 replicas via HPA), Promtail, Node Exporter
+- **Total Cost**: $60/month during GCP free tier
+
+**Known Limitation - Multi-Cloud vs High Availability**:
+⚠️ **This is multi-cloud deployment, NOT highly available**:
+- Data tier (AWS) remains single point of failure
+- AWS region failure = total system failure
+- Demonstrates cross-cloud connectivity, not disaster recovery
+
+**Path to True HA** (future enhancement):
+- Add Kafka replica in GCP (Kafka MirrorMaker) - +4-6 hours
+- MongoDB replica set across clouds - +4-6 hours
+- Geographic load balancing - +2-3 hours
+- Estimated total: +12-16 hours, doubles infrastructure cost
+
+**Why This Is Acceptable**:
+- Assignment goal: Multi-cloud deployment ✅
+- Not required: Netflix-scale HA ❌
+- Shows understanding of architectural tradeoffs ✅
+- Can articulate what true HA would require ✅
 
 ---
 
-## 🔴 DECISION 5: Failure Scenario for Resilience Drill
+## 🟢 DECISION 5: Failure Scenario for Resilience Drill
 
-**STATUS**: 🔴 Pending
+**STATUS**: 🟢 **DECIDED - VPN Tunnel Failure**
+**DECISION DATE**: November 13, 2025
 **PRIORITY**: Medium
-**DECISION NEEDED BY**: Before deployment (design system to test)
+**CHOSEN**: Option A - WireGuard VPN Tunnel Failure with Automated Recovery
 
 ### Option A: VPN Tunnel Failure ⭐ RECOMMENDED
 
@@ -841,16 +877,30 @@ kubectl delete pod -n ca3-app -l app=processor --context=gcp
 
 ### My Recommendation
 
-**RECOMMENDED**: Option A - VPN Tunnel Failure
+**DECISION**: ✅ **APPROVED - VPN Tunnel Failure**
 
 **Rationale**:
-- Best demonstrates CA4 multi-cloud connectivity
-- Clear cause and effect (easy to explain)
-- Realistic scenario (network failures are common)
-- Shows observability working (Grafana catches it)
-- Fast recovery (good for video demo)
+- **Best Demonstrates CA4 Goal**: Tests core multi-cloud connectivity requirement
+- **Clear Cause/Effect**: VPN down → GCP can't reach AWS → immediate observable failure
+- **Realistic Scenario**: Network partitions are common in production multi-cloud deployments
+- **Shows Observability**: Grafana dashboard catches failure immediately (connection errors, message lag spikes)
+- **Fast Recovery**: 1-2 minutes (VPN restarts → services reconnect → backlog processes)
+- **Perfect for Video Demo**: Clear narrative arc (healthy → failure → recovery)
+- **Non-Destructive**: No data loss, just connectivity interruption
 
-**DECISION**: ❓ **PENDING USER INPUT**
+**Test Procedure**:
+1. **Baseline**: Verify all systems healthy (Grafana green, messages flowing)
+2. **Failure**: `kubectl delete pod wireguard-0 -n kube-system --context=aws`
+3. **Observe**: GCP Producer/Processor connection errors, Grafana red alerts
+4. **Monitor**: Message lag increases, logs show connection timeouts
+5. **Recover**: `kubectl apply -f wireguard.yaml --context=aws`
+6. **Verify**: VPN re-establishes, services reconnect, message backlog clears
+
+**What This Proves**:
+- Multi-cloud connectivity dependency (core CA4 requirement) ✅
+- Cross-cloud observability (unified Grafana dashboard) ✅
+- Graceful degradation (messages queue, no data loss) ✅
+- Automated recovery (K8s restarts pod, services auto-reconnect) ✅
 
 ---
 
@@ -974,11 +1024,11 @@ Once you approve the decisions above, I'll help you:
 |----------|--------|---------------|------|-----------|
 | **Cloud Provider** | **🟢 Decided** | **GCP** | **Nov 13, 2025** | **Best resume value, longest free tier, GKE excellence** |
 | **Topology** | **🟢 Decided** | **Multi-Cloud Split** | **Nov 13, 2025** | **Best demo value, reuses CA3, clear failure scenario** |
-| Connectivity | 🔴 Pending | - | - | Awaiting decision (WireGuard VPN likely) |
-| Component Distribution | 🟡 Partial | AWS=Data, GCP=Compute | Nov 13 | Based on topology decision |
-| Failure Scenario | 🟡 Partial | VPN Tunnel Failure | Nov 13 | Best demonstrates multi-cloud |
+| **Connectivity** | **🟢 Decided** | **WireGuard VPN** | **Nov 13, 2025** | **$0 cost, industry standard, automatable, perfect for demo** |
+| **Component Distribution** | **🟢 Decided** | **AWS=Data, GCP=Compute** | **Nov 13, 2025** | **Data gravity, reuses CA3, honest about HA limitations** |
+| **Failure Scenario** | **🟢 Decided** | **VPN Tunnel Failure** | **Nov 13, 2025** | **Best tests multi-cloud connectivity, clear demo** |
 
 ---
 
 **Last Updated**: November 13, 2025
-**Status**: Awaiting user input on 5 critical decisions
+**Status**: ✅ **ALL DECISIONS FINALIZED - Ready for implementation**
