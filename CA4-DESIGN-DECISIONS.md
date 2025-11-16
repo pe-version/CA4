@@ -59,11 +59,12 @@ For each decision below:
 
 ---
 
-## 🔴 DECISION 1: Second Cloud Provider Selection
+## 🟢 DECISION 1: Second Cloud Provider Selection
 
-**STATUS**: 🔴 Pending
+**STATUS**: 🟢 **DECIDED - Google Cloud Platform (GCP)**
+**DECISION DATE**: November 13, 2025
 **PRIORITY**: Critical (blocks all other decisions)
-**DECISION NEEDED BY**: Before infrastructure provisioning
+**CHOSEN**: Option A - Google Cloud Platform (GCP)
 
 ### Options Analysis
 
@@ -180,19 +181,28 @@ For each decision below:
 
 ### My Recommendation
 
-**FOR LEARNING/CAREER**: GCP (Option A)
-- Best multi-cloud experience (AWS + GCP = 2 major cloud providers)
-- Longest free tier (90 days)
-- Industry standard skills
-- Best for portfolio/resume
+**DECISION**: ✅ **APPROVED - Google Cloud Platform (GCP)**
 
-**FOR COST**: DigitalOcean (Option C)
-- Lowest long-term cost ($115/mo vs $135/mo for GCP)
-- Simplest setup = less debugging time
-- Still demonstrates multi-cloud patterns
-- Good enough for assignment requirements
+**Rationale**:
+- **Resume/Career Value**: AWS + GCP = 2 major cloud providers covering 70% of market
+- **Learning ROI**: GKE is industry-leading Kubernetes (learn from the best)
+- **Longest Free Tier**: $300 credits for 90 days (vs 30-60 days for others)
+- **Strong Terraform Support**: Excellent provider, similar patterns to AWS
+- **Enterprise Skills**: GCP networking and VPC knowledge highly marketable
+- **Portfolio Story**: Multi-cloud AWS+GCP deployment demonstrates advanced skills
 
-**DECISION**: ❓ **PENDING USER INPUT**
+**Cost Analysis** (with Multi-Cloud Split topology):
+- **Month 1 (Assignment)**: AWS $60 + GCP $0 (credits) = **$60 total** ✅
+- **Months 2-3**: AWS $60 + GCP $0 (still on credits) = **$60 total**
+- **Month 4+**: AWS $60 + GCP $60 = **$120 total** (after credits expire)
+
+**Implementation Plan**:
+1. Set up GCP account and activate $300 free credits
+2. Create GCP project for CA4
+3. Configure Terraform GCP provider
+4. Deploy GKE cluster (2 nodes, e2-medium or e2-standard-2)
+5. Set up GCP VPC and firewall rules
+6. Establish WireGuard VPN between AWS and GCP
 
 ---
 
@@ -962,11 +972,11 @@ Once you approve the decisions above, I'll help you:
 
 | Decision | Status | Chosen Option | Date | Rationale |
 |----------|--------|---------------|------|-----------|
-| Cloud Provider | 🔴 Pending | - | - | Awaiting decision |
+| **Cloud Provider** | **🟢 Decided** | **GCP** | **Nov 13, 2025** | **Best resume value, longest free tier, GKE excellence** |
 | **Topology** | **🟢 Decided** | **Multi-Cloud Split** | **Nov 13, 2025** | **Best demo value, reuses CA3, clear failure scenario** |
-| Connectivity | 🔴 Pending | - | - | Awaiting decision |
-| Component Distribution | 🟡 Partial | Depends on Topology | - | AWS=Data, Cloud2=Compute |
-| Failure Scenario | 🟡 Partial | VPN Tunnel Failure | - | Best demonstrates multi-cloud |
+| Connectivity | 🔴 Pending | - | - | Awaiting decision (WireGuard VPN likely) |
+| Component Distribution | 🟡 Partial | AWS=Data, GCP=Compute | Nov 13 | Based on topology decision |
+| Failure Scenario | 🟡 Partial | VPN Tunnel Failure | Nov 13 | Best demonstrates multi-cloud |
 
 ---
 
