@@ -49,21 +49,28 @@ AWS (us-east-2)                          Cloud2 (TBD)
 
 ## 📊 Current Status
 
-**Status**: 🟡 **Planning & Design Phase**
+**Status**: 🟢 **Infrastructure Development**
 
 ### Completed
 - ✅ CA3 baseline deployed and operational (AWS Kubernetes cluster)
-- ✅ Design decisions documented ([CA4-DESIGN-DECISIONS.md](CA4-DESIGN-DECISIONS.md))
+- ✅ Design decisions finalized ([CA4-DESIGN-DECISIONS.md](CA4-DESIGN-DECISIONS.md))
+  - Cloud Provider: **GCP** (Google Kubernetes Engine)
+  - Topology: **Multi-Cloud Split** (data in AWS, compute in GCP)
+  - Connectivity: **WireGuard VPN** ($0 cost)
+  - Distribution: Kafka/MongoDB (AWS), Producer/Processor (GCP)
+  - Failure Scenario: VPN tunnel failure with recovery
 - ✅ Repository structure cleaned and organized
-- ✅ Planning documents created
+- ✅ GCP account setup completed
+- ✅ GCP Terraform configuration created ([terraform/gcp/](terraform/gcp/))
 
 ### In Progress
-- 🟡 Awaiting design decision approvals (cloud provider, topology, connectivity)
+- 🟡 Ready to deploy GCP GKE cluster
 
 ### Pending
-- ⏳ Terraform for second cloud provider
-- ⏳ WireGuard VPN setup
-- ⏳ Multi-cloud deployment automation
+- ⏳ Deploy GCP infrastructure (terraform apply)
+- ⏳ WireGuard VPN setup (AWS ↔ GCP)
+- ⏳ Deploy applications to GCP
+- ⏳ Cross-cloud observability configuration
 - ⏳ Resilience testing and documentation
 
 ---
@@ -76,12 +83,18 @@ CA4/
 ├── CA4-DESIGN-DECISIONS.md            # Critical design decisions tracker
 ├── LICENSE                            # MIT License
 │
-├── terraform/                         # AWS infrastructure (CA3 baseline)
-│   ├── main.tf                        # VPC, EC2, security groups
+├── terraform/                         # Infrastructure as Code
+│   ├── main.tf                        # AWS VPC, EC2, security groups (data tier)
 │   ├── variables.tf
 │   ├── outputs.tf
 │   ├── user-data-master.sh            # K3s master bootstrap
-│   └── user-data-worker.sh            # K3s worker bootstrap
+│   ├── user-data-worker.sh            # K3s worker bootstrap
+│   └── gcp/                           # GCP GKE infrastructure (compute tier)
+│       ├── main.tf                    # GKE cluster, VPC, firewall rules
+│       ├── variables.tf
+│       ├── outputs.tf
+│       ├── terraform.tfvars           # GCP credentials (gitignored)
+│       └── README.md                  # GCP deployment guide
 │
 ├── k8s/                               # Kubernetes manifests
 │   ├── base/                          # Core application (CA3)
@@ -115,6 +128,7 @@ CA4/
     ├── build-images.sh
     ├── setup-k3s-cluster.sh
     ├── deploy-aws-k3s.sh
+    ├── deploy-gcp-gke.sh              # GCP GKE deployment
     ├── verify-observability.sh
     ├── load-test.sh
     └── resilience-test.sh
