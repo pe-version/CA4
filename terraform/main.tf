@@ -74,13 +74,19 @@ resource "aws_security_group" "k3s_sg" {
   description = "Security group for K3s cluster"
   vpc_id      = aws_vpc.k3s_vpc.id
 
-  # SSH - Restrict to your IP
+  # SSH - Open for project duration
+  # SECURITY NOTE: This is set to 0.0.0.0/0 for academic project convenience.
+  # In production, this should be restricted to specific IPs or use one of:
+  # - AWS Systems Manager Session Manager (no SSH port needed)
+  # - Bastion host with fixed Elastic IP
+  # - VPN with known CIDR ranges
+  # - CI/CD pipeline with known NAT gateway IPs
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = [var.my_ip]
-    description = "SSH access from your IP"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "SSH access - open for project duration (see security note in terraform)"
   }
 
   # K3s API Server
@@ -117,6 +123,15 @@ resource "aws_security_group" "k3s_sg" {
     protocol    = "udp"
     cidr_blocks = ["10.0.0.0/16"]
     description = "K3s flannel Wireguard"
+  }
+
+  # WireGuard VPN from GCP
+  ingress {
+    from_port   = 51820
+    to_port     = 51820
+    protocol    = "udp"
+    cidr_blocks = ["136.115.74.42/32", "0.0.0.0/0"]
+    description = "WireGuard VPN from GCP"
   }
 
   # Grafana Dashboard

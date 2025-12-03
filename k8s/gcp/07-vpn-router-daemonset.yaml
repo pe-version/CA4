@@ -1,0 +1,65 @@
+---
+# DaemonSet to configure routing on GKE nodes
+# This adds routes so pods can reach AWS (10.0.0.0/16) through the WireGuard pod
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: vpn-router
+  namespace: vpn-system
+  labels:
+    app: vpn-router
+spec:
+  selector:
+    matchLabels:
+      app: vpn-router
+  template:
+    metadata:
+      labels:
+        app: vpn-router
+    spec:
+      hostNetwork: true
+      hostPID: true
+      initContainers:
+        - name: route-configurator
+          image: alpine:latest
+          command:
+            - sh
+            - -c
+            - |
+              # Install required tools
+              apk add --no-cache iproute2 iptables
+
+              # Get WireGuard pod IP (assuming it's in the same namespace)
+              WIREGUARD_POD_IP="10.100.1.7"
+
+              # Add route to AWS network through WireGuard pod
+              ip route add 10.0.0.0/16 via ${WIREGUARD_POD_IP} || true
+
+              # Enable IP forwarding
+              echo 1 > /proc/sys/net/ipv4/ip_forward
+
+              # Add iptables rules to allow forwarding
+              iptables -A FORWARD -d 10.0.0.0/16 -j ACCEPT || true
+              iptables -A FORWARD -s 10.0.0.0/16 -j ACCEPT || true
+
+              echo "Routes configured successfully"
+              ip route | grep "10.0.0.0/16"
+
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: host-root
+              mountPath: /host
+      containers:
+        - name: sleep
+          image: alpine:latest
+          command: ["sleep", "infinity"]
+          securityContext:
+            privileged: true
+      volumes:
+        - name: host-root
+          hostPath:
+            path: /
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists

@@ -1,0 +1,20 @@
+---
+# Service for WireGuard pod to act as a gateway
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-gateway
+  namespace: vpn-system
+spec:
+  type: ClusterIP
+  ports:
+    - name: kafka
+      port: 30092
+      targetPort: 30092
+      protocol: TCP
+    - name: mongodb
+      port: 30017
+      targetPort: 30017
+      protocol: TCP
+  selector:
+    app: wireguard

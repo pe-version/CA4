@@ -205,7 +205,7 @@ resource "google_container_node_pool" "primary_nodes" {
   # Auto-upgrade and auto-repair
   management {
     auto_repair  = true
-    auto_upgrade = false  # Manual control for stability
+    auto_upgrade = true  # Required when using release_channel
   }
 
   # Autoscaling (optional, can enable later)

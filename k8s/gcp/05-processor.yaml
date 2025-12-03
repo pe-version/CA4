@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: processor
+  namespace: ca3-app
+  labels:
+    app: processor
+    tier: processing
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 8001
+      targetPort: 8001
+  selector:
+    app: processor
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processor
+  namespace: ca3-app
+  labels:
+    app: processor
+    tier: processing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: processor
+  template:
+    metadata:
+      labels:
+        app: processor
+        tier: processing
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8001"
+        prometheus.io/path: "/metrics"
+    spec:
+      hostAliases:
+        - ip: "10.101.94.73"
+          hostnames:
+            - "kafka-0.kafka.ca3-app.svc.cluster.local"
+            - "kafka.ca3-app.svc.cluster.local"
+      containers:
+        - name: processor
+          image: hiphophippo/metals-processor:v1.1
+          ports:
+            - containerPort: 8001
+              name: http
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "10.101.94.73:9092"
+            - name: KAFKA_TOPIC
+              value: "metals-prices"
+            - name: KAFKA_GROUP_ID
+              value: "metals-processor-group"
+            - name: MONGODB_HOST
+              value: "10.101.94.73"
+            - name: MONGODB_PORT
+              value: "27017"
+            - name: MONGODB_DATABASE
+              value: "metals"
+            - name: MONGODB_USERNAME
+              value: "admin"
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-password
+                  key: password
+            - name: PROCESSOR_BATCH_SIZE
+              value: "50"
+            - name: PROCESSOR_COMMIT_INTERVAL
+              value: "5"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: processor-config
+              mountPath: /app/config.yml
+              subPath: config.yml
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: processor-config
+          configMap:
+            name: processor-config

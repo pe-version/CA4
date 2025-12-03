@@ -1,0 +1,3 @@
+# WireGuard keys and configured manifests (contain secrets)
+k8s/wireguard/*.key
+k8s/wireguard/*-configured.yaml

@@ -22,6 +22,9 @@ terraform/cloud2/*.tfvars
 **/k3s.yaml
 **/*-kubeconfig.yaml
 
+# WireGuard - Exclude configured files with actual keys
+k8s/wireguard/*-configured.yaml
+
 # Secrets & Keys
 *.pem
 *.key
@@ -31,6 +34,7 @@ terraform/cloud2/*.tfvars
 secrets/
 *.env
 .env.*
+.wireguard-keys.env
 wireguard/*.conf
 wireguard/privatekey
 wireguard/publickey
@@ -42,6 +46,7 @@ wireguard/publickey
 **/.digitalocean/
 **/credentials
 **/serviceaccount.json
+google-cloud-sdk/
 
 # Evidence & Videos (too large for git)
 evidence/

@@ -1,0 +1,214 @@
+---
+# WireGuard VPN Gateway for AWS Cluster - TEMPLATE
+# Connects AWS (data tier) to GCP (compute tier)
+#
+# IMPORTANT: This is a TEMPLATE file with placeholders.
+# Actual WireGuard keys are stored separately and injected via deployment script.
+#
+# Deployment process:
+# 1. Run: ./scripts/deploy-wireguard-secrets.sh aws
+# 2. This creates the wireguard-keys secret in the vpn-system namespace
+# 3. Apply this template: kubectl apply -f wireguard-aws-template.yaml
+#
+# The secret contains:
+# - aws-private-key: AWS WireGuard private key
+# - gcp-public-key: GCP WireGuard public key (peer)
+# - gcp-endpoint: GCP public IP and port
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vpn-system
+  labels:
+    name: vpn-system
+    purpose: cross-cloud-connectivity
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config-template
+  namespace: vpn-system
+data:
+  # Base configuration template - keys will be injected from secret
+  wg0.conf.template: |
+    [Interface]
+    Address = 10.200.0.1/24
+    ListenPort = 51820
+    # PrivateKey will be injected by init container
+
+    # Peer: GCP VPN Gateway
+    [Peer]
+    # PublicKey will be injected by init container
+    # Endpoint will be injected by init container
+    AllowedIPs = 10.200.0.2/32, 10.1.0.0/24, 10.100.0.0/16, 10.101.0.0/16
+    PersistentKeepalive = 25
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-vpn
+  namespace: vpn-system
+spec:
+  type: NodePort
+  ports:
+    - name: wireguard
+      port: 51820
+      targetPort: 51820
+      protocol: UDP
+      nodePort: 31820  # Exposed on K3s nodes
+  selector:
+    app: wireguard
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wireguard
+  namespace: vpn-system
+  labels:
+    app: wireguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wireguard
+  template:
+    metadata:
+      labels:
+        app: wireguard
+    spec:
+      # Pin to master node (has public IP)
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+
+      hostNetwork: true  # Use host network for NodePort access
+
+      initContainers:
+      # Init container generates final wg0.conf from template + secrets
+      - name: config-generator
+        image: busybox:1.36
+        command:
+          - sh
+          - -c
+          - |
+            echo "Generating WireGuard configuration from template and secrets..."
+
+            # Read secrets
+            PRIVATE_KEY=$(cat /secrets/aws-private-key)
+            PEER_PUBLIC_KEY=$(cat /secrets/gcp-public-key)
+            PEER_ENDPOINT=$(cat /secrets/gcp-endpoint)
+
+            # Start with template
+            cp /config-template/wg0.conf.template /config/wg0.conf
+
+            # Inject PrivateKey after ListenPort
+            sed -i "/ListenPort = 51820/a PrivateKey = $PRIVATE_KEY" /config/wg0.conf
+
+            # Inject PublicKey after [Peer]
+            sed -i "/\[Peer\]/a PublicKey = $PEER_PUBLIC_KEY" /config/wg0.conf
+
+            # Inject Endpoint after PublicKey
+            sed -i "/PublicKey = $PEER_PUBLIC_KEY/a Endpoint = $PEER_ENDPOINT" /config/wg0.conf
+
+            echo "Configuration generated successfully (keys hidden):"
+            cat /config/wg0.conf | grep -v PrivateKey | grep -v PublicKey
+
+            echo "Setting proper permissions..."
+            chmod 600 /config/wg0.conf
+        volumeMounts:
+          - name: config-template
+            mountPath: /config-template
+          - name: config
+            mountPath: /config
+          - name: wireguard-keys
+            mountPath: /secrets
+            readOnly: true
+
+      containers:
+      - name: wireguard
+        image: linuxserver/wireguard:latest
+        ports:
+        - containerPort: 51820
+          protocol: UDP
+          name: wireguard
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - SYS_MODULE
+          privileged: true
+        volumeMounts:
+        - name: config
+          mountPath: /config/wg0.conf
+          subPath: wg0.conf
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      volumes:
+      - name: config-template
+        configMap:
+          name: wireguard-config-template
+      - name: config
+        emptyDir: {}
+      - name: wireguard-keys
+        secret:
+          secretName: wireguard-keys
+          defaultMode: 0400  # Read-only for owner
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
+
+---
+# NetworkPolicy: Allow WireGuard traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-wireguard
+  namespace: vpn-system
+spec:
+  podSelector:
+    matchLabels:
+      app: wireguard
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0  # Allow VPN from anywhere (GCP will connect)
+    ports:
+    - protocol: UDP
+      port: 51820
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0  # Allow VPN to anywhere (to reach GCP)
+    ports:
+    - protocol: UDP
+      port: 51820
+  - to:  # Allow DNS
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53

@@ -1,0 +1,39 @@
+---
+# NodePort service for Kafka to expose to GCP via VPN
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-nodeport
+  namespace: ca3-app
+  labels:
+    app: kafka
+    tier: messaging
+spec:
+  type: NodePort
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 9092
+      nodePort: 30092  # Accessible at node-ip:30092
+  selector:
+    app: kafka
+
+---
+# NodePort service for MongoDB to expose to GCP via VPN
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-nodeport
+  namespace: ca3-app
+  labels:
+    app: mongodb
+    tier: data
+spec:
+  type: NodePort
+  ports:
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+      nodePort: 30017  # Accessible at node-ip:30017
+  selector:
+    app: mongodb

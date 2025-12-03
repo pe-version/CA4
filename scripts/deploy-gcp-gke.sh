@@ -4,6 +4,10 @@
 
 set -e  # Exit on error
 
+# Setup gcloud environment
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/setup-gcloud-env.sh"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,7 +20,7 @@ GCP_PROJECT_ID="metals-price-tracker"
 GCP_REGION="us-central1"
 GCP_ZONE="us-central1-a"
 CLUSTER_NAME="ca4-gke-compute"
-TERRAFORM_DIR="../terraform/gcp"
+TERRAFORM_DIR="$SCRIPT_DIR/../terraform/gcp"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  CA4 GCP GKE Deployment${NC}"

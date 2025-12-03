@@ -1,77 +1,86 @@
-# CA4: Multi-Hybrid Cloud Deployment
+# CA4: Multi-Cloud Deployment with Encrypted VPN
 
 **Student**: Philip Eykamp
 **Course**: CS 5287 - DevOps Engineering
 **Assignment**: CA4 - Multi-Hybrid Cloud Operations
-**Submission Date**: November 2025
+**Status**: ✅ **Complete and Operational**
+**Last Updated**: December 3, 2025
 
 ---
 
 ## 🎯 Project Overview
 
-This project extends the CA3 single-cloud Kubernetes deployment to a **multi-cloud architecture**, demonstrating:
+This project demonstrates a production-grade **multi-cloud architecture** spanning AWS and GCP with secure cross-cloud connectivity, featuring:
 
-- ✅ **Multi-Cloud Deployment**: AWS + [Second Cloud TBD] with cross-cloud connectivity
-- ✅ **Secure VPN Tunnel**: WireGuard-based encrypted connectivity between clouds
-- ✅ **Distributed Workloads**: Data tier in AWS, compute tier in Cloud2
-- ✅ **Unified Observability**: Centralized monitoring and logging across clouds
-- ✅ **Resilience Testing**: VPN failure scenario with automated recovery
-- ✅ **Production Patterns**: Industry-standard multi-cloud architecture
+- ✅ **Multi-Cloud Split Architecture**: Data tier (AWS K3s) + Compute tier (GCP GKE)
+- ✅ **Encrypted VPN Tunnel**: WireGuard-based secure connectivity between clouds
+- ✅ **Distributed Workloads**: Metals price processing pipeline across cloud providers
+- ✅ **Kubernetes Secret Management**: Secure handling of VPN cryptographic keys
+- ✅ **Cross-Cloud Networking**: Service discovery and routing via VPN
+- ✅ **Production Patterns**: Infrastructure as Code, GitOps, security best practices
 
 ---
 
-## 🏗️ Architecture (Planned)
+## 🏗️ Architecture
 
 ```
-AWS (us-east-2)                          Cloud2 (TBD)
-┌──────────────────────────┐            ┌──────────────────────────┐
-│ DATA TIER                │            │ COMPUTE TIER             │
-│                          │            │                          │
-│ • Kafka StatefulSet      │◄──────────┤ • Producer Deployment    │
-│ • Zookeeper StatefulSet  │  WireGuard │ • Processor Deployment   │
-│ • MongoDB StatefulSet    │  VPN       │                          │
-│                          │  Tunnel    │ • Promtail (logs)        │
-│ OBSERVABILITY HUB        │            │ • Node Exporter (metrics)│
-│ • Prometheus             │◄───────────┤                          │
-│ • Grafana                │            │                          │
-│ • Loki                   │            │                          │
-└──────────────────────────┘            └──────────────────────────┘
-     Existing CA3                            New in CA4
+┌─────────────────────────────────────────────────────────────────────┐
+│                     CA4 Multi-Cloud Architecture                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│  ┌────────────────────────┐         ┌───────────────────────────┐   │
+│  │  GCP (us-central1-a)   │         │   AWS (us-east-2)         │   │
+│  │  Compute Tier          │         │   Data Tier               │   │
+│  ├────────────────────────┤         ├───────────────────────────┤   │
+│  │                        │         │                           │   │
+│  │  Producer (1/1) ───────┼────┐    │  ┌─── Kafka (1/1)         │   │
+│  │  Processor (1/1) ──────┼────┼────┼──┼─── MongoDB (1/1)       │   │
+│  │                        │    │    │  │    Zookeeper (1/1)     │   │
+│  │  WireGuard VPN ────────┼────┘    │  └─── WireGuard VPN       │   │
+│  │  10.200.0.2/24         │ TUNNEL  │       10.200.0.1/24       │   │
+│  │                        │         │                           │   │
+│  │  GKE Cluster           │         │  K3s Cluster              │   │
+│  │  2x e2-standard-2      │         │  1x t3.medium             │   │
+│  │  VPC: 10.1.0.0/24      │         │  VPC: 10.0.0.0/16         │   │
+│  └────────────────────────┘         └───────────────────────────┘   │
+│                                                                       │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 **Data Flow**:
-1. Producer (Cloud2) → Kafka (AWS) via VPN tunnel
-2. Processor (Cloud2) → Kafka (AWS) → MongoDB (AWS) via VPN
-3. Promtail (Cloud2) → Loki (AWS) centralized logging
-4. Prometheus (AWS) scrapes metrics from both clouds
+1. Producer (GCP) → Kafka (AWS) via encrypted VPN tunnel
+2. Kafka (AWS) → Processor (GCP) via VPN
+3. Processor (GCP) → MongoDB (AWS) via VPN
+
+**Encryption**: All cross-cloud traffic encrypted with WireGuard (ChaCha20-Poly1305)
 
 ---
 
 ## 📊 Current Status
 
-**Status**: 🟢 **Infrastructure Development**
+**Deployment**: ✅ Complete and operational
+**VPN Tunnel**: ✅ Encrypted and stable
+**Applications**: ✅ Running and processing data
+**Secret Management**: ✅ Kubernetes secrets (keys not in Git)
 
-### Completed
-- ✅ CA3 baseline deployed and operational (AWS Kubernetes cluster)
-- ✅ Design decisions finalized ([CA4-DESIGN-DECISIONS.md](CA4-DESIGN-DECISIONS.md))
-  - Cloud Provider: **GCP** (Google Kubernetes Engine)
-  - Topology: **Multi-Cloud Split** (data in AWS, compute in GCP)
-  - Connectivity: **WireGuard VPN** ($0 cost)
-  - Distribution: Kafka/MongoDB (AWS), Producer/Processor (GCP)
-  - Failure Scenario: VPN tunnel failure with recovery
-- ✅ Repository structure cleaned and organized
-- ✅ GCP account setup completed
-- ✅ GCP Terraform configuration created ([terraform/gcp/](terraform/gcp/))
+### Running Services
 
-### In Progress
-- 🟡 Ready to deploy GCP GKE cluster
+**AWS K3s Cluster (Data Tier)**:
+- ✅ Kafka StatefulSet (1/1)
+- ✅ MongoDB StatefulSet (1/1)
+- ✅ Zookeeper StatefulSet (1/1)
+- ✅ WireGuard VPN (1/1)
 
-### Pending
-- ⏳ Deploy GCP infrastructure (terraform apply)
-- ⏳ WireGuard VPN setup (AWS ↔ GCP)
-- ⏳ Deploy applications to GCP
-- ⏳ Cross-cloud observability configuration
-- ⏳ Resilience testing and documentation
+**GCP GKE Cluster (Compute Tier)**:
+- ✅ Producer Deployment (1/1)
+- ✅ Processor Deployment (1/1)
+- ✅ WireGuard VPN (1/1)
+
+### Recent Achievements
+- ✅ Implemented Kubernetes Secrets for WireGuard key management
+- ✅ Resolved cross-cloud routing with hostAliases and socat forwarding
+- ✅ Documented SSH access strategy (academic vs. enterprise)
+- ✅ End-to-end data pipeline operational
 
 ---
 
@@ -79,146 +88,151 @@ AWS (us-east-2)                          Cloud2 (TBD)
 
 ```
 CA4/
-├── README.md                          # This file
-├── CA4-DESIGN-DECISIONS.md            # Critical design decisions tracker
-├── LICENSE                            # MIT License
+├── README.md                              # This file
+├── WIREGUARD-DEPLOYMENT-QUICKSTART.md     # Quick VPN deployment reference
+├── CA4-DESIGN-DECISIONS.md                # Critical design decisions tracker
 │
-├── terraform/                         # Infrastructure as Code
-│   ├── main.tf                        # AWS VPC, EC2, security groups (data tier)
+├── docs/                                  # Documentation
+│   ├── DEPLOYMENT-GUIDE.md                # Complete deployment walkthrough
+│   ├── WIREGUARD-SECRET-MANAGEMENT.md     # VPN key management strategy
+│   ├── SSH-ACCESS-STRATEGY.md             # SSH security documentation
+│   ├── setup/                             # Setup guides
+│   │   ├── GCP-SETUP-GUIDE.md             # GCP account setup
+│   │   └── GCLOUD-SETUP-COMPLETE.md       # gcloud CLI configuration
+│   └── archive/                           # Historical documentation
+│
+├── terraform/                             # Infrastructure as Code
+│   ├── main.tf                            # AWS infrastructure
 │   ├── variables.tf
 │   ├── outputs.tf
-│   ├── user-data-master.sh            # K3s master bootstrap
-│   ├── user-data-worker.sh            # K3s worker bootstrap
-│   └── gcp/                           # GCP GKE infrastructure (compute tier)
-│       ├── main.tf                    # GKE cluster, VPC, firewall rules
+│   └── gcp/                               # GCP infrastructure
+│       ├── main.tf                        # GKE cluster config
 │       ├── variables.tf
-│       ├── outputs.tf
-│       ├── terraform.tfvars           # GCP credentials (gitignored)
-│       └── README.md                  # GCP deployment guide
+│       └── outputs.tf
 │
-├── k8s/                               # Kubernetes manifests
-│   ├── base/                          # Core application (CA3)
-│   │   ├── 00-namespace.yaml
-│   │   ├── 10-zookeeper.yaml
-│   │   ├── 11-kafka.yaml
-│   │   ├── 12-mongodb.yaml
-│   │   ├── 20-processor.yaml
-│   │   └── 21-producer.yaml
-│   ├── observability/                 # Prometheus, Grafana, Loki
-│   │   ├── prometheus-values.yaml
-│   │   ├── loki-values.yaml
-│   │   └── metals-sli-dashboard.json
-│   └── security/                      # NetworkPolicies
-│       └── network-policies.yaml
+├── k8s/                                   # Kubernetes manifests
+│   ├── aws/                               # AWS data tier services
+│   │   ├── 01-namespace.yaml
+│   │   ├── 02-secrets.yaml
+│   │   ├── 03-zookeeper.yaml
+│   │   ├── 04-kafka.yaml
+│   │   ├── 05-mongodb.yaml
+│   │   └── 06-nodeport-services.yaml
+│   ├── gcp/                               # GCP compute tier services
+│   │   ├── 01-namespace.yaml
+│   │   ├── 02-secrets.yaml
+│   │   ├── 03-configmaps.yaml
+│   │   ├── 04-producer.yaml
+│   │   ├── 05-processor.yaml
+│   │   └── 0X-wireguard*.yaml             # VPN routing services
+│   └── wireguard/                         # VPN configuration
+│       ├── wireguard-aws-template.yaml    # AWS VPN (no keys)
+│       ├── wireguard-gcp-template.yaml    # GCP VPN (no keys)
+│       └── *-configured.yaml              # (gitignored - has keys)
 │
-├── producer/                          # Producer application
+├── producer/                              # Producer application
 │   ├── Dockerfile
 │   ├── producer.py
 │   └── requirements.txt
 │
-├── processor/                         # Processor application
+├── processor/                             # Processor application
 │   ├── Dockerfile
 │   ├── processor.py
 │   └── requirements.txt
 │
-├── mongodb/                           # MongoDB initialization
-│   └── init-db.js
+├── scripts/                               # Automation scripts
+│   ├── deploy-gcp-gke.sh                  # GCP cluster deployment
+│   ├── setup-gcloud-env.sh                # GCP environment setup
+│   ├── deploy-wireguard-secrets.sh        # VPN secret management
+│   └── configure-wireguard.sh             # VPN configuration
 │
-└── scripts/                           # Automation scripts
-    ├── build-images.sh
-    ├── setup-k3s-cluster.sh
-    ├── deploy-aws-k3s.sh
-    ├── deploy-gcp-gke.sh              # GCP GKE deployment
-    ├── verify-observability.sh
-    ├── load-test.sh
-    └── resilience-test.sh
+└── .wireguard-keys.env                    # (gitignored - local keys only)
 ```
 
 ---
 
-## 🚀 Quick Start (Coming Soon)
+## 🚀 Quick Start
 
-Once design decisions are finalized, the deployment will follow these steps:
+### Prerequisites
+- AWS account with EC2 access
+- GCP account with $300 free credits
+- Terraform >= 1.5
+- kubectl >= 1.28
+- gcloud CLI
 
-### 1. Deploy AWS Cluster (CA3 Baseline)
+### 1. Deploy AWS Infrastructure
+
 ```bash
 cd terraform
 terraform init
 terraform apply
 
-# Configure kubectl
-../scripts/setup-k3s-cluster.sh
-
-# Deploy application + observability
-kubectl apply -k k8s/base/
-helm install prometheus prometheus-community/kube-prometheus-stack -n ca3-app
+# Verify
+ssh -i ~/.ssh/ca0-keys.pem ubuntu@<AWS_MASTER_IP> "sudo k3s kubectl get nodes"
 ```
 
-### 2. Deploy Second Cloud Cluster
+### 2. Deploy GCP Infrastructure
+
 ```bash
-cd terraform/cloud2
+cd terraform/gcp
 terraform init
 terraform apply
 
-# Configure second cluster kubeconfig
-# (Details TBD based on cloud provider choice)
+# Configure kubectl
+source scripts/setup-gcloud-env.sh
+gcloud container clusters get-credentials ca4-gke-compute \
+  --zone=us-central1-a --project=metals-price-tracker
+
+# Verify
+kubectl get nodes
 ```
 
-### 3. Establish VPN Tunnel
-```bash
-# Deploy WireGuard VPN in both clusters
-./scripts/setup-wireguard.sh
+### 3. Deploy WireGuard VPN
 
-# Verify connectivity
-kubectl exec -it <producer-pod> -n ca3-app -- ping <kafka-service-aws>
+```bash
+# Deploy secrets (keys stored in .wireguard-keys.env, gitignored)
+./scripts/deploy-wireguard-secrets.sh aws
+./scripts/deploy-wireguard-secrets.sh gcp
+
+# Deploy VPN pods
+kubectl apply -f k8s/wireguard/wireguard-aws-template.yaml --context aws
+kubectl apply -f k8s/wireguard/wireguard-gcp-template.yaml --context gcp
+
+# Verify tunnel
+kubectl exec -n vpn-system deployment/wireguard -- ping -c 4 10.200.0.1
 ```
 
-### 4. Deploy Applications to Cloud2
-```bash
-# Deploy producers and processors to Cloud2
-kubectl apply -f k8s/cloud2/ --context=cloud2
+### 4. Deploy Applications
 
-# Verify cross-cloud connectivity
-./scripts/verify-multi-cloud.sh
-```
-
-### 5. Test Resilience
 ```bash
-# Run VPN failure scenario
-./scripts/ca4-resilience-test.sh
+# Deploy to AWS
+scp -i ~/.ssh/ca0-keys.pem -r k8s/aws ubuntu@<AWS_IP>:/tmp/
+ssh -i ~/.ssh/ca0-keys.pem ubuntu@<AWS_IP> "sudo k3s kubectl apply -f /tmp/aws/"
+
+# Deploy to GCP
+kubectl apply -f k8s/gcp/
+
+# Verify data flow
+kubectl logs -n ca3-app -l app=producer --tail=20
+kubectl logs -n ca3-app -l app=processor --tail=20
 ```
 
 ---
 
-## 🔑 Key Design Decisions
+## 📚 Documentation
 
-See [CA4-DESIGN-DECISIONS.md](CA4-DESIGN-DECISIONS.md) for detailed analysis. Summary:
+### Core Documentation
+- **[Deployment Guide](docs/DEPLOYMENT-GUIDE.md)** - Complete step-by-step deployment
+- **[WireGuard Secret Management](docs/WIREGUARD-SECRET-MANAGEMENT.md)** - VPN key management strategy
+- **[WireGuard Quickstart](WIREGUARD-DEPLOYMENT-QUICKSTART.md)** - Quick VPN reference
+- **[Design Decisions](CA4-DESIGN-DECISIONS.md)** - Architecture decision record
 
-| Decision | Status | Leading Option |
-|----------|--------|----------------|
-| **Cloud Provider** | 🔴 Pending | DigitalOcean (cost) or GCP (learning) |
-| **Topology** | 🔴 Pending | Multi-Cloud Split (data in AWS, compute in Cloud2) |
-| **Connectivity** | 🔴 Pending | WireGuard VPN ($0 cost) |
-| **Distribution** | 🔴 Pending | Kafka/MongoDB in AWS, Producer/Processor in Cloud2 |
-| **Failure Scenario** | 🔴 Pending | VPN tunnel failure with recovery |
+### Setup Guides
+- **[GCP Setup Guide](docs/setup/GCP-SETUP-GUIDE.md)** - GCP account creation
+- **[gcloud Setup](docs/setup/GCLOUD-SETUP-COMPLETE.md)** - CLI configuration
 
----
-
-## 💰 Estimated Costs
-
-### Option 1: AWS + DigitalOcean (Most Cost-Effective)
-- **AWS**: 2 nodes (master + worker-1) = $60/month
-- **DigitalOcean**: 2 nodes (compute tier) = $0 for 2 months (credits), then $40/month
-- **VPN**: $0 (WireGuard on existing nodes)
-- **Total**: $60/month during free tier, $100/month after
-
-### Option 2: AWS + GCP (Best for Learning)
-- **AWS**: 2 nodes = $60/month
-- **GCP**: 2 nodes = $0 for 3 months (credits), then $60/month
-- **VPN**: $0 (WireGuard)
-- **Total**: $60/month during free tier, $120/month after
-
-**Assignment Duration**: ~1 month = **$60-75 total cost**
+### Security Documentation
+- **[SSH Access Strategy](docs/SSH-ACCESS-STRATEGY.md)** - SSH security (academic vs. enterprise)
 
 ---
 
@@ -226,76 +240,102 @@ See [CA4-DESIGN-DECISIONS.md](CA4-DESIGN-DECISIONS.md) for detailed analysis. Su
 
 ### Infrastructure
 - **AWS**: EC2 (t3.medium), VPC, Security Groups
-- **Cloud2**: TBD (GCP GKE or DigitalOcean DOKS)
+- **GCP**: GKE (e2-standard-2), VPC, Firewall Rules
 - **IaC**: Terraform 1.5+
 
 ### Kubernetes
-- **Orchestration**: K3s (lightweight Kubernetes)
-- **CNI**: Flannel
-- **Ingress**: Traefik (K3s default)
+- **Orchestration**: K3s (AWS), GKE (GCP)
+- **Networking**: Flannel (AWS), VPC-native (GCP)
+- **VPN**: WireGuard (encrypted tunnel)
 
 ### Applications
-- **Producer**: Python 3.11, Kafka-Python, Prometheus-Client
-- **Processor**: Python 3.11, Kafka-Python, PyMongo, Prometheus-Client
+- **Producer**: Python 3.11, Kafka-Python
+- **Processor**: Python 3.11, Kafka-Python, PyMongo
 - **Messaging**: Apache Kafka 7.5.0 + Zookeeper
-- **Database**: MongoDB 7.0 (with TLS)
-
-### Observability
-- **Metrics**: Prometheus, Grafana
-- **Logging**: Loki, Promtail
-- **Dashboards**: Custom SLI dashboard (16 panels)
+- **Database**: MongoDB 7.0
 
 ### Security
-- **VPN**: WireGuard (ChaCha20 encryption)
-- **Network**: NetworkPolicies (9 policies)
-- **Secrets**: External Secrets Operator + AWS Secrets Manager
-- **TLS**: MongoDB (preferTLS), Kafka (dual listeners)
+- **VPN Encryption**: WireGuard (ChaCha20-Poly1305)
+- **Secret Management**: Kubernetes Secrets
+- **Network Policies**: Firewall rules, security groups
+- **Access Control**: SSH key-based authentication
 
 ---
 
-## 📚 Documentation
+## 💰 Cost Estimate
 
-- [CA4-DESIGN-DECISIONS.md](CA4-DESIGN-DECISIONS.md) - Comprehensive design decisions tracker
-- [CA4-CLEANUP-PLAN.md](CA4-CLEANUP-PLAN.md) - Repository cleanup plan (CA3 → CA4)
+| Resource | Quantity | Cost/Month |
+|----------|----------|------------|
+| AWS t3.medium | 1 | ~$30 |
+| GCP e2-standard-2 | 2 | $0 (free credits) |
+| **Total** | | **~$30/month** |
 
-**Coming Soon**:
-- CA4-DEPLOYMENT-GUIDE.md - Step-by-step deployment instructions
-- CA4-ARCHITECTURE.md - Detailed architecture diagrams
-- CA4-RESILIENCE-TEST.md - Failure scenario runbook
+*GCP free during 90-day $300 credit period*
 
----
-
-## 🎓 Learning Objectives
-
-This project demonstrates understanding of:
-
-1. **Multi-Cloud Architecture**: Designing systems across multiple cloud providers
-2. **Cross-Cloud Networking**: Secure VPN tunnels, service discovery, routing
-3. **Distributed Systems**: Data consistency, latency considerations, failure modes
-4. **DevOps Automation**: Infrastructure as Code across multiple clouds
-5. **Observability**: Unified monitoring and logging in distributed environments
-6. **Resilience Engineering**: Designing for and testing failure scenarios
+**Assignment Duration (1 month)**: ~$30 total
 
 ---
 
-## 📝 CA3 Baseline
+## 🔑 Key Features
 
-This project builds on CA3, which implemented:
-- ✅ Production Kubernetes cluster on AWS (3 nodes, 10GB RAM)
-- ✅ Full observability stack (Prometheus, Grafana, Loki)
-- ✅ Autoscaling (HPA for Producer/Processor)
-- ✅ Security hardening (NetworkPolicies, TLS, External Secrets)
-- ✅ Comprehensive documentation and evidence
+### Multi-Cloud Architecture
+- Geographical distribution (us-east-2 + us-central1-a)
+- Tier separation (data vs. compute)
+- Cloud provider diversity (AWS + GCP)
 
-**CA3 Status**: All 17 pods operational, full observability, passing all requirements.
+### Secure Networking
+- Encrypted VPN tunnel (WireGuard)
+- Network segmentation (VPCs, CIDRs)
+- Firewall rules and security groups
 
-**CA4 Goal**: Extend to multi-cloud while maintaining all CA3 capabilities.
+### DevOps Best Practices
+- Infrastructure as Code (Terraform)
+- GitOps workflow (Kubernetes manifests)
+- Secret management (keys not in Git)
+- Documentation as code
+
+### Kubernetes Expertise
+- StatefulSets for stateful services
+- Cross-cluster service discovery
+- ConfigMaps and Secrets
+- Resource limits and health checks
+
+---
+
+## 🎓 Learning Outcomes
+
+This project demonstrates mastery of:
+
+1. **Multi-Cloud Architecture** - Designing and deploying across AWS and GCP
+2. **Secure Cross-Cloud Networking** - VPN tunnels, routing, service discovery
+3. **Kubernetes at Scale** - Managing workloads across multiple clusters
+4. **Infrastructure as Code** - Terraform for reproducible infrastructure
+5. **DevOps Security** - Secret management, network isolation, access control
+6. **Production Patterns** - GitOps, documentation, troubleshooting
+
+---
+
+## 🚨 Important Notes
+
+### Security
+- **WireGuard keys** stored in `.wireguard-keys.env` (gitignored)
+- **Configured YAML files** with real keys are gitignored
+- **Template files** (safe to commit) use init containers to inject secrets at runtime
+- **SSH access** currently open for academic project (documented in [SSH-ACCESS-STRATEGY.md](docs/SSH-ACCESS-STRATEGY.md))
+
+### Production Considerations
+For production deployment, consider:
+- Restricting SSH to VPN or bastion host
+- Using cloud-native VPN gateways (AWS VPN, Cloud VPN)
+- Implementing External Secrets Operator for secret management
+- Adding observability stack (Prometheus, Grafana, Loki)
+- Implementing autoscaling (HPA, cluster autoscaler)
 
 ---
 
 ## 🤝 Contributing
 
-This is a student project for CS 5287. Not accepting contributions.
+This is a student project for CS 5287. Not accepting external contributions.
 
 ---
 
@@ -309,10 +349,10 @@ MIT License - See [LICENSE](LICENSE) file
 
 **Philip Eykamp**
 CS 5287 - DevOps Engineering
-November 2025
+December 2025
 
 ---
 
-**Last Updated**: November 13, 2025
-**Version**: 0.1.0 (Planning Phase)
-**Status**: 🟡 Awaiting design decision approvals
+**Last Updated**: December 3, 2025
+**Version**: 1.0.0
+**Status**: ✅ Complete and operational

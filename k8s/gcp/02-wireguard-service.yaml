@@ -1,0 +1,30 @@
+---
+# Service to expose WireGuard as a gateway to AWS services
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard
+  namespace: vpn-system
+  labels:
+    app: wireguard
+spec:
+  type: ClusterIP
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 30092
+      protocol: TCP
+    - name: mongodb
+      port: 27017
+      targetPort: 30017
+      protocol: TCP
+    - name: k3s-api
+      port: 6443
+      targetPort: 6443
+      protocol: TCP
+    - name: wireguard
+      port: 51820
+      targetPort: 51820
+      protocol: UDP
+  selector:
+    app: wireguard

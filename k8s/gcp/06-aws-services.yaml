@@ -1,0 +1,29 @@
+---
+# Service pointing to AWS Kafka via VPN
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-aws
+  namespace: ca3-app
+spec:
+  type: ExternalName
+  externalName: 10.0.1.154  # AWS node IP
+  ports:
+    - name: kafka
+      port: 30092
+      targetPort: 30092
+
+---
+# Service pointing to AWS MongoDB via VPN
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-aws
+  namespace: ca3-app
+spec:
+  type: ExternalName
+  externalName: 10.0.1.154  # AWS node IP
+  ports:
+    - name: mongodb
+      port: 30017
+      targetPort: 30017

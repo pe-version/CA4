@@ -1,0 +1,147 @@
+---
+# WireGuard VPN Gateway for GCP Cluster
+# Connects GCP (compute tier) to AWS (data tier)
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vpn-system
+  labels:
+    name: vpn-system
+    purpose: cross-cloud-connectivity
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config
+  namespace: vpn-system
+data:
+  wg0.conf: |
+    [Interface]
+    Address = 10.200.0.2/24
+    PrivateKey = GCP_PRIVATE_KEY_PLACEHOLDER
+    ListenPort = 51820
+
+    # Peer: AWS VPN Gateway
+    [Peer]
+    PublicKey = AWS_PUBLIC_KEY_PLACEHOLDER
+    Endpoint = 18.191.202.7:51820
+    AllowedIPs = 10.200.0.1/32, 10.0.0.0/16, 10.43.0.0/16
+    PersistentKeepalive = 25
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-vpn
+  namespace: vpn-system
+  annotations:
+    cloud.google.com/load-balancer-type: "External"
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 136.115.74.42  # GCP static IP from Terraform
+  ports:
+    - name: wireguard
+      port: 51820
+      targetPort: 51820
+      protocol: UDP
+  selector:
+    app: wireguard
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wireguard
+  namespace: vpn-system
+  labels:
+    app: wireguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wireguard
+  template:
+    metadata:
+      labels:
+        app: wireguard
+    spec:
+      containers:
+      - name: wireguard
+        image: linuxserver/wireguard:latest
+        ports:
+        - containerPort: 51820
+          protocol: UDP
+          name: wireguard
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "America/New_York"
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+              - SYS_MODULE
+          privileged: true
+        volumeMounts:
+        - name: wireguard-config
+          mountPath: /config/wg0.conf
+          subPath: wg0.conf
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      volumes:
+      - name: wireguard-config
+        configMap:
+          name: wireguard-config
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+# NetworkPolicy: Allow WireGuard traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-wireguard
+  namespace: vpn-system
+spec:
+  podSelector:
+    matchLabels:
+      app: wireguard
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 0.0.0.0/0  # Allow VPN from anywhere (AWS will connect)
+    ports:
+    - protocol: UDP
+      port: 51820
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0  # Allow VPN to anywhere (to reach AWS)
+    ports:
+    - protocol: UDP
+      port: 51820
+  - to:  # Allow DNS
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53

@@ -1,0 +1,23 @@
+---
+# ExternalName service to alias Kafka's advertised hostname to WireGuard service
+# When Kafka tells GCP clients to connect to kafka-0.kafka.ca3-app.svc.cluster.local,
+# this service will resolve it to wireguard.vpn-system.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-0
+  namespace: ca3-app
+spec:
+  type: ExternalName
+  externalName: wireguard.vpn-system.svc.cluster.local
+
+---
+# Also create kafka service (without -0 suffix) as fallback
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: ca3-app
+spec:
+  type: ExternalName
+  externalName: wireguard.vpn-system.svc.cluster.local
